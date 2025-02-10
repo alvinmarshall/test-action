@@ -1,0 +1,47 @@
+name: Bump version
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get Changed Directories
+        id: changed-directories
+        uses: tj-actions/changed-files@v35
+        with:
+          dir_names: "true"
+          files_ignore: |
+            .github/*
+          dir_names_exclude_root: "true"
+          dir_names_max_depth: "1"
+
+      - name: Check if any Proxy files were deleted
+        id: check-deleted
+        run: |
+          echo "outputs"
+          echo "${{ steps.changed-directories.outputs }}"
+          echo "any delete"
+          echo "${{ steps.changed-directories.outputs.any_deleted }}"
+          if [ "${{ steps.changed-directories.outputs.any_deleted }}" == "true" ]; then
+          echo "Files were deleted. Proceeding with proxy deletion."
+          echo "run_deletion=true" >> $GITHUB_OUTPUT
+          else
+          echo "No files were deleted. Skipping proxy deletion."
+          echo "run_deletion=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract deleted Proxy directories
+        if: steps.check-deleted.outputs.run_deletion == 'true'
+        id: deleted-dirs
+        run: |
+          DELETED_FILES="${{ steps.changed-directories.outputs.deleted_files }}"
+          DELETED_DIRS=$(echo "$DELETED_FILES" | xargs -n1 dirname | sort | uniq)
+          echo "deleted_dirs=$DELETED_DIRS" >> $GITHUB_OUTPUT
+
